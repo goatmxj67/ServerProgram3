@@ -1,0 +1,56 @@
+package command.board;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import common.ModelAndView;
+import common.Paging;
+import dao.BoardDAO;
+import dto.BoardDTO;
+
+public class FindBoardCommand implements BoardCommand {
+
+	@Override
+	public ModelAndView execute(HttpServletRequest request, HttpServletResponse response) {
+		
+		String column = request.getParameter("column");
+		String query = request.getParameter("query");
+		
+		Map<String, String> map = new HashMap<String, String>();
+		map.put("column", column);
+		map.put("query", "%" + query + "%");
+		
+		int totalRecord = BoardDAO.getInstance().getFindBoardCount(map);
+		
+		Optional<String> opt = Optional.ofNullable(request.getParameter("page"));
+		int page = Integer.parseInt(opt.orElse("1"));
+		
+		int recordPerPage = 5;
+		
+		int beginRecord = (page - 1) * recordPerPage + 1;
+		int endRecord = beginRecord + recordPerPage - 1;
+		endRecord = (endRecord < totalRecord) ? endRecord : totalRecord;
+		
+		map.put("beginRecord", beginRecord + "");
+		map.put("endRecord", endRecord + "");
+		
+		List<BoardDTO> list = BoardDAO.getInstance().selectFindList(map);
+		
+		String paging = Paging.getPaging("/10_MODEL2/findBoard.b?column=" + column + "&query=" + query, totalRecord, recordPerPage, page);
+		
+		request.setAttribute("totalRecord", totalRecord);
+		request.setAttribute("list", list);
+		request.setAttribute("paging", paging);
+		request.setAttribute("seq", totalRecord - (page - 1) * recordPerPage);
+		
+		ModelAndView mav = new ModelAndView("/board/listBoard.jsp", false);  // 포워드 이동
+		return mav;
+		
+	}
+
+}
